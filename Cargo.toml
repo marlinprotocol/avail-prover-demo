@@ -1,0 +1,24 @@
+[package]
+name = "avail-prover-demo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.5.1"
+aleo-rust = "=0.6.8"
+bindings = { path = "./bindings", package = "foundry-contracts" }
+tokio = { version = "1", features = ["full"] }
+openssl = { version = "0.10", features = ["vendored"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+derive_more = "0.99.17"
+rand = "0.8.5"
+secp256k1 = "0.28.0"
+dotenv = "0.15.0"
+validator = { version = "0.16", features = ["derive"] }
+env_logger = "0.10"
+log = "0.4"
+hex = "0.4"
+ethers ={version = "2.0.10", features = ["abigen", "ws", "rustls"] }
