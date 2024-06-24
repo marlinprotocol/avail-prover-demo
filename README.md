@@ -4,7 +4,7 @@
 Add the following details to your `.env` file.
 
 ```
-PORT=5000
+PORT=3030
 ```
 
 ## Instructions
