@@ -8,26 +8,16 @@ use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Debug, Deserialize, Clone)]
-pub struct ProverInputs {
+pub struct ProveAuthInputs {
     pub ask: Ask,
     pub private_input: Vec<u8>,
     pub ask_id: u64,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProverConfig {
-    pub private_key: String,
-    pub query_url: String,
-    pub secret: String,
 }
 
 #[derive(Debug, Display, Error)]
 pub enum InputError {
     #[display(fmt = "file not found")]
     FileNotFound,
-
-    #[display(fmt = "incorrect config")]
-    BadConfigData,
 
     #[display(fmt = "execution failed")]
     ExecutionFailed,
@@ -46,7 +36,6 @@ impl error::ResponseError for InputError {
     fn status_code(&self) -> StatusCode {
         match *self {
             InputError::FileNotFound => StatusCode::NOT_FOUND,
-            InputError::BadConfigData => StatusCode::NOT_ACCEPTABLE,
             InputError::ExecutionFailed => StatusCode::NOT_IMPLEMENTED,
             InputError::InvalidInputs => StatusCode::BAD_REQUEST,
         }
