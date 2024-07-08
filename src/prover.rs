@@ -5,6 +5,7 @@ use aleo_rust::{
 };
 use snarkvm_synthesizer::Authorization;
 use ethers::signers::{LocalWallet, Signer};
+use ethers::types::Bytes;
 use serde_json::{Value, Error};
 use rand::thread_rng;
 use secp256k1;
@@ -145,10 +146,12 @@ pub async fn prove_auth(
     let auth_input = payload.clone().private_input;
     let secrets = String::from_utf8(auth_input).unwrap();
     let value: Value = serde_json::from_str(&secrets).unwrap();
+    let public_inputs = payload.ask.prover_data.clone();
+    let ask_id = payload.ask_id;
     let authorization_structure: Result<Authorization<Testnet3>, Error> = serde_json::from_value(value);
     if authorization_structure.is_err() {
-        log::error!("{:#?}", authorization_structure.err());
-        return Err(model::InputError::InvalidInputs);
+        let generator_response = invalid_input_response(ask_id, public_inputs).await;
+        return Ok(generator_response);
     }
     let authorization = authorization_structure.unwrap();
     let auth_transitions = authorization.clone().transitions();
@@ -172,8 +175,6 @@ pub async fn prove_auth(
     trace.prepare(Query::from(block_store)).unwrap();
     let prove_result = trace.prove_execution::<AleoV0, _>(&locator.to_string(), rng);
 
-    let public_inputs = payload.ask.prover_data.clone();
-
     match prove_result {
         Ok(prove) => {
             let prove_time = prove_now.elapsed();
@@ -196,7 +197,7 @@ pub async fn prove_auth(
                 .unwrap();
 
             let execution_response = GenerateProofResponse {
-                input: Some(payload.ask.prover_data.clone()),
+                input: Some(ethers::types::Bytes::from(public_inputs.to_vec())),
                 execution: Some(ethers::types::Bytes::from(prove.to_string().as_bytes().to_vec())),
                 verification_status: true,
                 signature: Some("0x".to_owned() + &signature.to_string()),
@@ -206,26 +207,47 @@ pub async fn prove_auth(
         }
         Err(e) => {
             println!("Error: {:?}", e);
-            let ask_id = payload.ask_id;
-            let value = vec![
-                ethers::abi::Token::Uint(ask_id.into()),
-                ethers::abi::Token::Bytes(public_inputs.to_vec()),
-            ];
-            let encoded = ethers::abi::encode(&value);
-            let digest = ethers::utils::keccak256(encoded);
-
-            let signature = signer_wallet
-                .sign_message(ethers::types::H256(digest))
-                .await
-                .unwrap();
-
             let execution_response = GenerateProofResponse {
                 input: Some(payload.ask.prover_data.clone()),
                 execution: None,
                 verification_status: false,
-                signature: Some("0x".to_owned() + &signature.to_string()),
+                signature: None,
             };
             return Ok(execution_response);
         }
     }
+}
+
+async fn invalid_input_response(ask_id: u64, public_inputs: Bytes) -> GenerateProofResponse {
+    log::info!(
+        "Invalid inputs received for ask ID : {}",
+        ask_id
+    );
+    let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
+    let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
+        .unwrap()
+        .display_secret()
+        .to_string();
+    let signer_wallet = secp_private_key.parse::<LocalWallet>().unwrap();
+
+    let value = vec![
+        ethers::abi::Token::Uint(ask_id.into()),
+        ethers::abi::Token::Bytes(public_inputs.to_vec()),
+    ];
+    let encoded = ethers::abi::encode(&value);
+    let digest = ethers::utils::keccak256(encoded);
+
+    let signature = signer_wallet
+        .sign_message(ethers::types::H256(digest))
+        .await
+        .unwrap();
+
+    let execution_response = GenerateProofResponse {
+        input: Some(public_inputs.clone()),
+        execution: None,
+        verification_status: false,
+        signature: Some("0x".to_owned() + &signature.to_string()),
+    };
+
+    return execution_response;
 }
