@@ -333,9 +333,17 @@ async fn verify_inputs_and_proof(
                 let verification_result =
                     prover::verify_execution_proof_testnet(exec).await.unwrap();
                 if verification_result {
-                    return response("Generated proof is valid", StatusCode::OK, None);
+                    let data = kalypso_ivs_models::models::VerifyInputAndProofResponse {
+                        is_input_and_proof_valid: true
+                    };
+                    let data_string = serde_json::to_string(&data).unwrap();
+                    return response("Generated proof is valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
                 } else {
-                    return response("Generated proof is NOT valid", StatusCode::OK, None);
+                    let data = kalypso_ivs_models::models::VerifyInputAndProofResponse {
+                        is_input_and_proof_valid: false
+                    };
+                    let data_string = serde_json::to_string(&data).unwrap();
+                    return response("Generated proof is NOT valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
                 }
             }
             Err(_) => {
@@ -355,9 +363,17 @@ async fn verify_inputs_and_proof(
                 let verification_result =
                     prover::verify_execution_proof_mainnet(exec).await.unwrap();
                 if verification_result {
-                    return response("Generated proof is valid", StatusCode::OK, None);
+                    let data = kalypso_ivs_models::models::VerifyInputAndProofResponse {
+                        is_input_and_proof_valid: true
+                    };
+                    let data_string = serde_json::to_string(&data).unwrap();
+                    return response("Generated proof is valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
                 } else {
-                    return response("Generated proof is NOT valid", StatusCode::OK, None);
+                    let data = kalypso_ivs_models::models::VerifyInputAndProofResponse {
+                        is_input_and_proof_valid: false
+                    };
+                    let data_string = serde_json::to_string(&data).unwrap();
+                    return response("Generated proof is NOT valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
                 }
             }
             Err(_) => {
@@ -403,7 +419,12 @@ async fn generate_invalid_input_attestation(
         .await
         .unwrap();
 
-    return signature.to_string();
+    let response = kalypso_ivs_models::models::InvalidInputsAttestationResponse {
+        signature: signature.to_string(),
+        ask_id
+    };
+    let response_string = serde_json::to_string(&response).unwrap();
+    return response_string;
 }
 
 fn get_signer() -> Wallet<SigningKey> {
@@ -441,10 +462,18 @@ async fn check_authorization_testnet(
                         )),
                     );
                 } else {
-                    return response("Payload is NOT valid", StatusCode::OK, None);
+                    let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
+                        is_input_valid: false
+                    };
+                    let data_string = serde_json::to_string(&data).unwrap();
+                    return response("Payload is NOT valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
                 }
-            } else {
-                return response("Payload is valid", StatusCode::OK, None);
+            } else { 
+                let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
+                    is_input_valid: true
+                };
+                let data_string = serde_json::to_string(&data).unwrap();
+                return response("Payload is valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
             }
         }
         Err(_) => {
@@ -480,10 +509,18 @@ async fn check_authorization_mainnet(
                         )),
                     );
                 } else {
-                    return response("Payload is NOT valid", StatusCode::OK, None);
+                    let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
+                        is_input_valid: false
+                    };
+                    let data_string = serde_json::to_string(&data).unwrap();
+                    return response("Payload is NOT valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
                 }
             } else {
-                return response("Payload is valid", StatusCode::OK, None);
+                let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
+                    is_input_valid: true
+                };
+                let data_string = serde_json::to_string(&data).unwrap();
+                return response("Payload is valid", StatusCode::OK, Some(serde_json::Value::String(data_string)));
             }
         }
         Err(_) => {

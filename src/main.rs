@@ -129,7 +129,7 @@ mod tests {
         let result_json: serde_json::Value = serde_json::from_slice(&result).unwrap();
         let expected_json = json!({
             "message": "Payload is valid",
-            "data": null
+            "data": "{\"is_input_valid\":true}"
         });
 
         assert_eq!(result_json, expected_json);
@@ -208,7 +208,7 @@ mod tests {
         // when payload is valid, signature is not required to be sent
         let expected_json = json!({
             "message": "Payload is valid",
-            "data": null
+            "data": "{\"is_input_valid\":true}"
         });
         assert_eq!(result_json, expected_json);
     }
@@ -258,7 +258,7 @@ mod tests {
         // below info is computed for above ask
         let expected_json = json!({
             "message": "Payload is NOT valid",
-            "data": "e8ef983340f3f23cc31c1fc8daed52b1d3a2d3b06369ec29b8a549ecab17383402575c86525a07acf237cc06c30a40158672cdb30c550f32f7263f34a5d46cf11b"
+            "data": "{\"signature\":\"e8ef983340f3f23cc31c1fc8daed52b1d3a2d3b06369ec29b8a549ecab17383402575c86525a07acf237cc06c30a40158672cdb30c550f32f7263f34a5d46cf11b\",\"ask_id\":1}"
         });
         assert_eq!(result_json, expected_json);
     }
@@ -299,7 +299,7 @@ mod tests {
         // when payload is valid, signature is not required to be sent
         let expected_json = json!({
             "message": "Payload is valid",
-            "data": null
+            "data": "{\"is_input_valid\":true}"
         });
         assert_eq!(result_json, expected_json);
     }
