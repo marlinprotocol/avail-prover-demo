@@ -3,16 +3,7 @@ use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse,
 };
-use bindings::shared_types::Ask;
 use derive_more::{Display, Error};
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Debug, Deserialize, Clone)]
-pub struct ProveAuthInputs {
-    pub ask: Ask,
-    pub private_input: Vec<u8>,
-    pub ask_id: u64,
-}
 
 #[derive(Debug, Display, Error)]
 pub enum InputError {

@@ -7,8 +7,6 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.5.1"
-aleo-rust = "=0.6.8"
-bindings = { path = "./bindings", package = "foundry-contracts" }
 tokio = { version = "1", features = ["full"] }
 openssl = { version = "0.10", features = ["vendored"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -21,5 +19,31 @@ validator = { version = "0.16", features = ["derive"] }
 env_logger = "0.10"
 log = "0.4"
 hex = "0.4"
+aes-gcm = "0.10.3"
+ecies = { version = "0.2.7", features = ["std"] }
 ethers ={version = "2.0.10", features = ["abigen", "ws", "rustls"] }
-snarkvm-synthesizer = "0.16.19"
+async-trait = "0.1.81"
+reqwest = { version = "0.12.5", features = ["json"]}
+snarkvm = { features = [], git = "https://github.com/AleoNet/snarkVM", rev = "d170a9f", optional = true }
+
+kalypso_helper = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "helper" }
+kalypso_ivs_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "ivs" }
+kalypso_generator_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "generator" }
+bindings = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "foundry-contracts" }
+kalypso_matching_engine_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "matching_engine" }
+
+# kalypso_helper = { path = "../kalypso-unified/helper", package = "helper" }
+# kalypso_ivs_models = { path = "../kalypso-unified/ivs", package = "ivs" }
+# kalypso_generator_models = { path = "../kalypso-unified/generator", package = "generator" }
+# bindings = { path = "../kalypso-unified/bindings", package = "foundry-contracts" }
+# kalypso_matching_engine_models = { path = "../kalypso-unified/matching_engine", package = "matching_engine" }
+
+[dev-dependencies]
+actix-rt = "2"
+actix-web = "4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+default = ["snarkvm"]
+snarkvm = ["dep:snarkvm"]
