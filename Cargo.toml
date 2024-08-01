@@ -25,18 +25,21 @@ ethers ={version = "2.0.10", features = ["abigen", "ws", "rustls"] }
 async-trait = "0.1.81"
 reqwest = { version = "0.12.5", features = ["json"]}
 snarkvm = { features = [], git = "https://github.com/AleoNet/snarkVM", rev = "d170a9f", optional = true }
+anyhow = "1.0.86"
 
-kalypso_helper = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "helper" }
-kalypso_ivs_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "ivs" }
-kalypso_generator_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "generator" }
-bindings = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "foundry-contracts" }
-kalypso_matching_engine_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "master", package = "matching_engine" }
+kalypso_helper = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "listener-refined", package = "helper" }
+kalypso_ivs_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "listener-refined", package = "ivs" }
+kalypso_generator_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "listener-refined", package = "generator" }
+bindings = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "listener-refined", package = "foundry-contracts" }
+kalypso_matching_engine_models = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "listener-refined", package = "matching_engine" }
+kalypso_listener = { git = "https://github.com/marlinprotocol/kalypso-unified.git", branch = "listener-refined", package = "listener" }
 
 # kalypso_helper = { path = "../kalypso-unified/helper", package = "helper" }
 # kalypso_ivs_models = { path = "../kalypso-unified/ivs", package = "ivs" }
 # kalypso_generator_models = { path = "../kalypso-unified/generator", package = "generator" }
 # bindings = { path = "../kalypso-unified/bindings", package = "foundry-contracts" }
 # kalypso_matching_engine_models = { path = "../kalypso-unified/matching_engine", package = "matching_engine" }
+# kalypso_listener = { path = "../kalypso-unified/listener", package = "listener" }
 
 [dev-dependencies]
 actix-rt = "2"

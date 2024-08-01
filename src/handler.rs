@@ -30,7 +30,12 @@ async fn benchmark() -> impl Responder {
     let file_content = fs::read_to_string(auth_path).or_else(|_| fs::read_to_string(alt_auth_path));
     if file_content.is_err() {
         log::error!("{:#?}", file_content.err());
-        return Err(model::InputError::FileNotFound);
+        return HttpResponse::BadRequest().json(
+            kalypso_generator_models::models::BenchmarkResponse {
+                data: model::InputError::FileNotFound.to_string(),
+                time_in_ms: 0,
+            },
+        );
     }
 
     let auth_value: Value =
@@ -41,7 +46,12 @@ async fn benchmark() -> impl Responder {
 
     if authorization_structure.is_err() {
         log::error!("{:#?}", authorization_structure.err());
-        return Err(model::InputError::InvalidInputs);
+        return HttpResponse::BadRequest().json(
+            kalypso_generator_models::models::BenchmarkResponse {
+                data: model::InputError::InvalidInputs.to_string(),
+                time_in_ms: 0,
+            },
+        );
     }
 
     log::info!("Printing benchmarks for the avail prover");
@@ -49,37 +59,32 @@ async fn benchmark() -> impl Responder {
         authorization_structure.expect("error creating authorization structure"),
     );
 
-    match benchmark_proof_generation {
-        Ok(benchmarks) => {
-            let proving_time = benchmarks.proof_generation_time.to_string();
-            Ok(response(
-                "Proof generated, the proof generation time returned is in milliseconds",
-                StatusCode::OK,
-                Some(Value::String(proving_time)),
-            ))
-        }
-        Err(e) => {
-            response(
-                "There was an issue benchmarking the proof generation time.",
-                StatusCode::INTERNAL_SERVER_ERROR,
-                None,
-            );
-            Err(e)
-        }
+    if benchmark_proof_generation.is_err() {
+        return HttpResponse::ExpectationFailed().json(
+            kalypso_generator_models::models::BenchmarkResponse {
+                data: "Failed".to_string(),
+                time_in_ms: 0,
+            },
+        );
+    } else {
+        return HttpResponse::Ok().json(kalypso_generator_models::models::BenchmarkResponse {
+            data: "Success".to_string(),
+            time_in_ms: benchmark_proof_generation.unwrap().proof_generation_time,
+        });
     }
 }
 
 #[post("/generateProof")]
 async fn generate_proof(
-    payload: web::Json<kalypso_generator_models::models::AskInputPayload>,
+    payload: web::Json<kalypso_generator_models::models::InputPayload>,
 ) -> impl Responder {
-    log::info!(
-        "Request received by the avail prover for ask ID : {}",
-        payload.0.ask_id
-    );
+    log::info!("Request received by the avail prover");
 
-    let prover_data = payload.clone().ask.prover_data.0;
-    let network = String::from_utf8(prover_data.to_vec()).unwrap();
+    let network = {
+        let prover_data: ethers::types::Bytes = payload.clone().public.into();
+        String::from_utf8(prover_data.0.to_vec()).unwrap()
+    };
+
     let prove_result;
     if network.contains("1u16") {
         prove_result = prover::prove_auth_testnet(payload.0).await;
@@ -106,12 +111,11 @@ async fn generate_proof(
                     ethers::abi::Token::Bytes(sig_bytes.to_vec()),
                 ];
                 let encoded = ethers::abi::encode(&value);
-                let encoded_bytes: ethers::types::Bytes = encoded.into();
-                Ok(response(
-                    "Proof generated",
-                    StatusCode::OK,
-                    Some(Value::String(encoded_bytes.to_string())),
-                ))
+                return Ok(HttpResponse::Ok().json(
+                    kalypso_generator_models::models::GenerateProofResponse {
+                        proof: encoded.to_vec(),
+                    },
+                ));
             } else if prove.execution.is_none() && prove.signature.is_some() {
                 let signature = prove.signature.unwrap();
                 return Ok(response(
@@ -133,15 +137,24 @@ async fn generate_proof(
 
 #[post("/checkInput")]
 async fn check_input_handler(
-    payload: web::Json<kalypso_ivs_models::models::InputPayload>,
+    payload: web::Json<kalypso_generator_models::models::InputPayload>,
 ) -> impl Responder {
-    let private_input = payload.clone().secrets.unwrap();
-    let auth_value: Value = match serde_json::from_str(&private_input) {
-        Ok(data) => data,
-        Err(_) => {
-            return response("Invalid Authorization", StatusCode::BAD_REQUEST, None);
-        }
+    let default_response = kalypso_ivs_models::models::CheckInputResponse { valid: false };
+    let private_input = match payload.clone().secrets {
+        Some(data) => data,
+        None => return HttpResponse::Ok().json(default_response),
     };
+
+    let private_input_str = match std::str::from_utf8(&private_input) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::Ok().json(default_response),
+    };
+
+    let auth_value: Value = match serde_json::from_str(&private_input_str) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::Ok().json(default_response),
+    };
+
     let network = &auth_value["network"];
     let auth = &auth_value["auth"];
 
@@ -154,38 +167,28 @@ async fn check_input_handler(
             serde_json::from_value(auth.clone());
         check_authorization_mainnet(authorization_structure, None, None).await
     } else {
-        return response("Network not implemented", StatusCode::BAD_REQUEST, None);
+        return HttpResponse::Ok()
+            .json(kalypso_ivs_models::models::CheckInputResponse { valid: true });
     }
 }
 
 #[post("/getAttestationForInvalidInputs")]
 async fn get_attestation_for_invalid_inputs(
-    payload: web::Json<kalypso_ivs_models::models::AskPayload>,
+    payload: web::Json<kalypso_ivs_models::models::InvalidInputPayload>,
 ) -> impl Responder {
-    let encrypted_input = payload.clone().encrypted_secret;
-    let private_input = hex::decode(encrypted_input).unwrap();
-    let acl = hex::decode(payload.clone().acl).unwrap();
-    let market_id = payload.clone().ask.market_id;
+    let signer_wallet = get_signer();
 
-    let secret_input = match kalypso_helper::secret_inputs_helpers::decrypt_data_with_ecies_and_aes(
-        &private_input,
-        &acl,
-        &get_secp_private_key(),
-        market_id,
-    ) {
+    let private_input = payload.clone().secrets.unwrap();
+
+    let private_input_str = match std::str::from_utf8(&private_input) {
         Ok(data) => data,
         Err(_) => {
-            return response(
-                "The secret encryption could not be decrypted",
-                StatusCode::BAD_REQUEST,
-                None,
-            );
+            return HttpResponse::BadRequest()
+                .json(kalypso_ivs_models::models::CheckInputResponse { valid: false })
         }
     };
 
-    let signer_wallet = get_signer();
-    let decrypted_secret = String::from_utf8(secret_input).unwrap();
-    let auth_value: Value = match serde_json::from_str(&decrypted_secret) {
+    let auth_value: Value = match serde_json::from_str(&private_input_str) {
         Ok(data) => data,
         Err(_) => {
             return HttpResponse::Ok()
@@ -237,9 +240,9 @@ async fn check_encrypted_input(
         (signature.to_string(), modified_secp_pub_key)
     };
     let decrypt_request_payload = kalypso_matching_engine_models::models::DecryptRequest {
-        market_id: payload.market_id,
-        private_input: payload.encrypted_secrets,
-        acl: payload.acl,
+        market_id: payload.market_id.to_string(),
+        private_input: hex::encode(payload.encrypted_secrets),
+        acl: hex::encode(payload.acl),
         signature,
         ivs_pubkey: hex::encode(ivs_pub_key),
     };
@@ -277,7 +280,8 @@ async fn check_encrypted_input(
         let auth_value: Value = match serde_json::from_str(&decrypted_secret) {
             Ok(data) => data,
             Err(_) => {
-                return response("Decrypted Data is not valid", StatusCode::BAD_REQUEST, None);
+                return HttpResponse::Ok()
+                    .json(kalypso_ivs_models::models::CheckInputResponse { valid: false });
             }
         };
 
@@ -308,8 +312,20 @@ async fn check_encrypted_input(
 async fn verify_inputs_and_proof(
     payload: web::Json<kalypso_ivs_models::models::VerifyInputsAndProof>,
 ) -> impl Responder {
-    let private_input = payload.clone().private_input;
-    let auth_value: Value = serde_json::from_str(&private_input).unwrap();
+    let default_response = kalypso_ivs_models::models::VerifyInputAndProofResponse {
+        is_input_and_proof_valid: false,
+    };
+    let private_input = match payload.clone().private_input {
+        Some(data) => data,
+        None => return HttpResponse::Ok().json(default_response),
+    };
+
+    let private_input_str = match std::str::from_utf8(&private_input) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::Ok().json(default_response),
+    };
+
+    let auth_value: Value = serde_json::from_str(&private_input_str).unwrap();
     let network = &auth_value["network"];
     let execution = &auth_value["execution"];
 
@@ -388,13 +404,13 @@ pub fn routes(conf: &mut web::ServiceConfig) {
 }
 
 async fn generate_invalid_input_attestation(
-    payload: kalypso_ivs_models::models::AskPayload,
+    payload: kalypso_ivs_models::models::InvalidInputPayload,
     signer_wallet: Wallet<SigningKey>,
-) -> kalypso_ivs_models::models::InvalidInputsAttestationResponse {
+) -> kalypso_generator_models::models::GenerateProofResponse {
     let ask_id = payload.ask_id;
     let value = vec![
         ethers::abi::Token::Uint(ask_id.into()),
-        ethers::abi::Token::Bytes(payload.ask.prover_data.to_vec()),
+        ethers::abi::Token::Bytes(payload.public),
     ];
     let encoded = ethers::abi::encode(&value);
     let digest = ethers::utils::keccak256(encoded);
@@ -404,10 +420,10 @@ async fn generate_invalid_input_attestation(
         .await
         .unwrap();
 
-    let response = kalypso_ivs_models::models::InvalidInputsAttestationResponse {
-        signature: signature.to_string(),
-        ask_id,
+    let response = kalypso_generator_models::models::GenerateProofResponse {
+        proof: signature.to_vec(),
     };
+
     return response;
 }
 
@@ -419,15 +435,16 @@ fn get_signer() -> Wallet<SigningKey> {
     secp_private_key.parse::<LocalWallet>().unwrap()
 }
 
-fn get_secp_private_key() -> Vec<u8> {
+pub fn get_secp_private_key() -> Vec<u8> {
     fs::read("./app/secp.sec").unwrap()
 }
 
 async fn check_authorization_testnet(
     authorization_structure: Result<Authorization<TestnetV0>, Error>,
-    ask_payload: Option<kalypso_ivs_models::models::AskPayload>,
+    ask_payload: Option<kalypso_ivs_models::models::InvalidInputPayload>,
     signer_wallet: Option<Wallet<SigningKey>>,
 ) -> HttpResponse {
+    let default_response = kalypso_ivs_models::models::CheckInputResponse { valid: false };
     match authorization_structure {
         Ok(auth) => {
             let is_auth_empty = auth.is_empty();
@@ -442,41 +459,25 @@ async fn check_authorization_testnet(
                         .await,
                     );
                 } else {
-                    let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
-                        is_input_valid: false,
-                    };
-                    return HttpResponse::Ok().json(data);
+                    return HttpResponse::Ok().json(default_response);
                 }
             } else {
-                if ask_payload.is_some() && signer_wallet.is_some() {
-                    let data = kalypso_ivs_models::models::InvalidInputsAttestationResponse {
-                        signature: " ".to_string(),
-                        ask_id: ask_payload.unwrap().ask_id,
-                    };
-                    return HttpResponse::Ok().json(data);
-                } else {
-                    let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
-                        is_input_valid: true,
-                    };
-                    return HttpResponse::Ok().json(data);
-                }
+                let data = kalypso_ivs_models::models::CheckInputResponse { valid: true };
+                return HttpResponse::Ok().json(data);
             }
         }
         Err(_) => {
-            return response(
-                "The authorization input structure is invalid",
-                StatusCode::BAD_REQUEST,
-                None,
-            );
+            return HttpResponse::Ok().json(default_response);
         }
     }
 }
 
 async fn check_authorization_mainnet(
     authorization_structure: Result<Authorization<MainnetV0>, Error>,
-    ask_payload: Option<kalypso_ivs_models::models::AskPayload>,
+    ask_payload: Option<kalypso_ivs_models::models::InvalidInputPayload>,
     signer_wallet: Option<Wallet<SigningKey>>,
 ) -> HttpResponse {
+    let default_response = kalypso_ivs_models::models::CheckInputResponse { valid: false };
     match authorization_structure {
         Ok(auth) => {
             let is_auth_empty = auth.is_empty();
@@ -491,32 +492,15 @@ async fn check_authorization_mainnet(
                         .await,
                     );
                 } else {
-                    let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
-                        is_input_valid: false,
-                    };
-                    return HttpResponse::Ok().json(data);
+                    return HttpResponse::Ok().json(default_response);
                 }
             } else {
-                if ask_payload.is_some() && signer_wallet.is_some() {
-                    let data = kalypso_ivs_models::models::InvalidInputsAttestationResponse {
-                        signature: " ".to_string(),
-                        ask_id: ask_payload.unwrap().ask_id,
-                    };
-                    return HttpResponse::Ok().json(data);
-                } else {
-                    let data = kalypso_ivs_models::models::SimpleCheckInputResponse {
-                        is_input_valid: true,
-                    };
-                    return HttpResponse::Ok().json(data);
-                }
+                let data = kalypso_ivs_models::models::CheckInputResponse { valid: true };
+                return HttpResponse::Ok().json(data);
             }
         }
         Err(_) => {
-            return response(
-                "The authorization input structure is invalid",
-                StatusCode::BAD_REQUEST,
-                None,
-            );
+            return HttpResponse::Ok().json(default_response);
         }
     }
 }

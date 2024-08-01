@@ -1,6 +1,5 @@
 use crate::model;
 use ethers::signers::{LocalWallet, Signer};
-use ethers::types::Bytes;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Error, Value};
@@ -112,7 +111,7 @@ pub fn prove_benchmark(
 }
 
 pub async fn prove_auth_mainnet(
-    payload: kalypso_generator_models::models::AskInputPayload,
+    payload: kalypso_generator_models::models::InputPayload,
 ) -> Result<GenerateProofResponse, model::InputError> {
     let rng = &mut thread_rng();
     type CurrentNetwork = MainnetV0;
@@ -145,17 +144,13 @@ pub async fn prove_auth_mainnet(
     let check_program = process.contains_program(program.id());
     assert!(check_program);
 
-    let private_inputs = payload.clone().private_input;
+    let private_inputs = payload.clone().secrets.unwrap();
     let secrets = String::from_utf8(private_inputs).unwrap();
     let value: Value = serde_json::from_str(&secrets).unwrap();
-    let public_inputs = payload.ask.prover_data.clone();
-    let ask_id = payload.ask_id;
+    let public_inputs = payload.public;
+
     let private_input_structure: Result<PrivateInputsMainnet, Error> =
         serde_json::from_value(value);
-    if private_input_structure.is_err() {
-        let generator_response = invalid_input_response(ask_id, public_inputs).await;
-        return Ok(generator_response);
-    }
 
     let private_input = private_input_structure.unwrap();
     let fee_auth = private_input.fee_auth;
@@ -247,7 +242,7 @@ pub async fn prove_auth_mainnet(
                 Err(e) => {
                     println!("Error: {:?}", e);
                     let execution_response = GenerateProofResponse {
-                        input: Some(payload.ask.prover_data.clone()),
+                        input: Some(public_inputs.into()),
                         execution: None,
                         verification_status: false,
                         signature: None,
@@ -259,7 +254,7 @@ pub async fn prove_auth_mainnet(
         Err(e) => {
             println!("Error: {:?}", e);
             let execution_response = GenerateProofResponse {
-                input: Some(payload.ask.prover_data.clone()),
+                input: Some(public_inputs.into()),
                 execution: None,
                 verification_status: false,
                 signature: None,
@@ -270,7 +265,7 @@ pub async fn prove_auth_mainnet(
 }
 
 pub async fn prove_auth_testnet(
-    payload: kalypso_generator_models::models::AskInputPayload,
+    payload: kalypso_generator_models::models::InputPayload,
 ) -> Result<GenerateProofResponse, model::InputError> {
     let rng = &mut thread_rng();
     type CurrentNetwork = TestnetV0;
@@ -303,17 +298,12 @@ pub async fn prove_auth_testnet(
     let check_program = process.contains_program(program.id());
     assert!(check_program);
 
-    let private_inputs = payload.clone().private_input;
+    let private_inputs = payload.clone().secrets.unwrap();
     let secrets = String::from_utf8(private_inputs).unwrap();
     let value: Value = serde_json::from_str(&secrets).unwrap();
-    let public_inputs = payload.ask.prover_data.clone();
-    let ask_id = payload.ask_id;
+    let public_inputs = payload.public;
     let private_input_structure: Result<PrivateInputsTestnet, Error> =
         serde_json::from_value(value);
-    if private_input_structure.is_err() {
-        let generator_response = invalid_input_response(ask_id, public_inputs).await;
-        return Ok(generator_response);
-    }
 
     let private_input = private_input_structure.unwrap();
     let fee_auth = private_input.fee_auth;
@@ -405,7 +395,7 @@ pub async fn prove_auth_testnet(
                 Err(e) => {
                     println!("Error: {:?}", e);
                     let execution_response = GenerateProofResponse {
-                        input: Some(payload.ask.prover_data.clone()),
+                        input: Some(public_inputs.clone().into()),
                         execution: None,
                         verification_status: false,
                         signature: None,
@@ -417,7 +407,7 @@ pub async fn prove_auth_testnet(
         Err(e) => {
             println!("Error: {:?}", e);
             let execution_response = GenerateProofResponse {
-                input: Some(payload.ask.prover_data.clone()),
+                input: Some(public_inputs.clone().into()),
                 execution: None,
                 verification_status: false,
                 signature: None,
@@ -513,31 +503,31 @@ pub async fn verify_execution_proof_mainnet(
     }
 }
 
-async fn invalid_input_response(ask_id: u64, public_inputs: Bytes) -> GenerateProofResponse {
-    log::info!("Invalid inputs received for ask ID : {}", ask_id);
-    let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
-    let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
-        .unwrap()
-        .display_secret()
-        .to_string();
-    let signer_wallet = secp_private_key.parse::<LocalWallet>().unwrap();
+// async fn invalid_input_response(ask_id: u64, public_inputs: Bytes) -> GenerateProofResponse {
+//     log::info!("Invalid inputs received for ask ID : {}", ask_id);
+//     let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
+//     let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
+//         .unwrap()
+//         .display_secret()
+//         .to_string();
+//     let signer_wallet = secp_private_key.parse::<LocalWallet>().unwrap();
 
-    let value = vec![
-        ethers::abi::Token::Uint(ask_id.into()),
-        ethers::abi::Token::Bytes(public_inputs.to_vec()),
-    ];
-    let encoded = ethers::abi::encode(&value);
-    let digest = ethers::utils::keccak256(encoded);
+//     let value = vec![
+//         ethers::abi::Token::Uint(ask_id.into()),
+//         ethers::abi::Token::Bytes(public_inputs.to_vec()),
+//     ];
+//     let encoded = ethers::abi::encode(&value);
+//     let digest = ethers::utils::keccak256(encoded);
 
-    let signature = signer_wallet
-        .sign_message(ethers::types::H256(digest))
-        .await
-        .unwrap();
+//     let signature = signer_wallet
+//         .sign_message(ethers::types::H256(digest))
+//         .await
+//         .unwrap();
 
-    GenerateProofResponse {
-        input: Some(public_inputs.clone()),
-        execution: None,
-        verification_status: false,
-        signature: Some("0x".to_owned() + &signature.to_string()),
-    }
-}
+//     GenerateProofResponse {
+//         input: Some(public_inputs.clone()),
+//         execution: None,
+//         verification_status: false,
+//         signature: Some("0x".to_owned() + &signature.to_string()),
+//     }
+// }
