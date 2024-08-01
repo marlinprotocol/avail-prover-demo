@@ -88,7 +88,11 @@ mod tests {
             time_taken_for_proof_generation: 1.into(),
             deadline: 1.into(),
             refund_address: "0000dead0000dead0000dead0000dead0000dead".parse().unwrap(),
-            prover_data: [123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49, 117, 49, 54, 34, 10, 125].into(),
+            prover_data: [
+                123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49,
+                117, 49, 54, 34, 10, 125,
+            ]
+            .into(),
         };
 
         let payload: AskInputPayload = AskInputPayload {
@@ -128,8 +132,7 @@ mod tests {
         let result = test::read_body(resp).await;
         let result_json: serde_json::Value = serde_json::from_slice(&result).unwrap();
         let expected_json = json!({
-            "message": "Payload is valid",
-            "data": "{\"is_input_valid\":true}"
+            "is_input_valid": true
         });
 
         assert_eq!(result_json, expected_json);
@@ -207,8 +210,8 @@ mod tests {
         let result_json: serde_json::Value = serde_json::from_slice(&result).unwrap();
         // when payload is valid, signature is not required to be sent
         let expected_json = json!({
-            "message": "Payload is valid",
-            "data": "{\"is_input_valid\":true}"
+            "signature": " ",
+            "ask_id": 1
         });
         assert_eq!(result_json, expected_json);
     }
@@ -257,8 +260,8 @@ mod tests {
         // when payload is valid, signature is not required to be sent
         // below info is computed for above ask
         let expected_json = json!({
-            "message": "Payload is NOT valid",
-            "data": "{\"signature\":\"e8ef983340f3f23cc31c1fc8daed52b1d3a2d3b06369ec29b8a549ecab17383402575c86525a07acf237cc06c30a40158672cdb30c550f32f7263f34a5d46cf11b\",\"ask_id\":1}"
+            "signature": "e8ef983340f3f23cc31c1fc8daed52b1d3a2d3b06369ec29b8a549ecab17383402575c86525a07acf237cc06c30a40158672cdb30c550f32f7263f34a5d46cf11b",
+            "ask_id": 1
         });
         assert_eq!(result_json, expected_json);
     }
@@ -298,8 +301,7 @@ mod tests {
         let result_json: serde_json::Value = serde_json::from_slice(&result).unwrap();
         // when payload is valid, signature is not required to be sent
         let expected_json = json!({
-            "message": "Payload is valid",
-            "data": "{\"is_input_valid\":true}"
+            "is_input_valid": true
         });
         assert_eq!(result_json, expected_json);
     }

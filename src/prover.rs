@@ -1,8 +1,8 @@
 use crate::model;
-use serde::{Deserialize, Serialize};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::Bytes;
 use rand::thread_rng;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Error, Value};
 use snarkvm::{
     circuit::{AleoTestnetV0, AleoV0},
