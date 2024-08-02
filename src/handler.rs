@@ -180,7 +180,7 @@ async fn get_attestation_for_invalid_inputs(
 ) -> impl Responder {
     let signer_wallet = get_signer();
 
-    let private_input = payload.clone().secrets.unwrap();
+    let private_input = payload.clone().get_plain_secrets().unwrap();
 
     let private_input_str = match std::str::from_utf8(&private_input) {
         Ok(data) => data,
@@ -418,10 +418,10 @@ async fn generate_invalid_input_attestation(
     payload: kalypso_ivs_models::models::InvalidInputPayload,
     signer_wallet: Wallet<SigningKey>,
 ) -> kalypso_generator_models::models::GenerateProofResponse {
-    let ask_id = payload.ask_id;
+    let ask_id = payload.only_ask_id();
     let value = vec![
         ethers::abi::Token::Uint(ask_id.into()),
-        ethers::abi::Token::Bytes(payload.public),
+        ethers::abi::Token::Bytes(payload.get_public()),
     ];
     let encoded = ethers::abi::encode(&value);
     let digest = ethers::utils::keccak256(encoded);
