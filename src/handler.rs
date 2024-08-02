@@ -207,24 +207,7 @@ async fn get_attestation_for_invalid_inputs(
         }
     };
 
-    let public_input = payload.clone().public;
-    let public_input_str = match std::str::from_utf8(&public_input) {
-        Ok(data) => data,
-        Err(_) => {
-            return HttpResponse::BadRequest()
-                .json(kalypso_ivs_models::models::CheckInputResponse { valid: false })
-        }
-    };
-
-    let auth_value_pub: Value = match serde_json::from_str(&public_input_str) {
-        Ok(data) => data,
-        Err(_) => {
-            return HttpResponse::Ok()
-                .json(generate_invalid_input_attestation(payload.0, signer_wallet).await);
-        }
-    };
-
-    let network = &auth_value_pub["network"];
+    let network = &auth_value["network"];
     let auth = &auth_value["auth"];
     if network.to_string().contains("1u16") {
         let authorization_structure: Result<Authorization<TestnetV0>, Error> =
@@ -343,23 +326,31 @@ async fn verify_inputs_and_proof(
     let default_response = kalypso_ivs_models::models::VerifyInputAndProofResponse {
         is_input_and_proof_valid: false,
     };
-    let private_input = match payload.clone().private_input {
-        Some(data) => data,
-        None => return HttpResponse::Ok().json(default_response),
-    };
+    let proof = payload.clone().proof;
 
-    let private_input_str = match std::str::from_utf8(&private_input) {
+    let proof_str = match std::str::from_utf8(&proof) {
         Ok(data) => data,
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let auth_value: Value = serde_json::from_str(&private_input_str).unwrap();
-    let network = &auth_value["network"];
-    let execution = &auth_value["execution"];
+    let exec_value: Value = serde_json::from_str(&proof_str).unwrap();
+
+    let public_input = match payload.clone().public_input {
+        Some(data) => data,
+        None => return HttpResponse::Ok().json(default_response),
+    };
+
+    let public_input_str = match std::str::from_utf8(&public_input) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::Ok().json(default_response),
+    };
+
+    let auth_value_pub: Value = serde_json::from_str(&public_input_str).unwrap();
+    let network = &auth_value_pub["network"];
 
     if network.to_string().contains("1u16") {
         let execution_structure: Result<Execution<TestnetV0>, Error> =
-            serde_json::from_value(execution.clone());
+            serde_json::from_value(exec_value.clone());
 
         match execution_structure {
             Ok(exec) => {
@@ -387,7 +378,7 @@ async fn verify_inputs_and_proof(
         }
     } else if network.to_string().contains("0u16") {
         let execution_structure: Result<Execution<MainnetV0>, Error> =
-            serde_json::from_value(execution.clone());
+            serde_json::from_value(exec_value.clone());
 
         match execution_structure {
             Ok(exec) => {
