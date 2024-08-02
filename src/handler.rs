@@ -151,11 +151,6 @@ async fn check_input_handler(
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let auth_value_pub: Value = match serde_json::from_str(&public_input_str) {
-        Ok(data) => data,
-        Err(_) => return HttpResponse::Ok().json(default_response),
-    };
-
     let private_input_str = match std::str::from_utf8(&private_input) {
         Ok(data) => data,
         Err(_) => return HttpResponse::Ok().json(default_response),
@@ -166,14 +161,13 @@ async fn check_input_handler(
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let network = &auth_value_pub["network"];
     let auth = &auth_value_pvt["auth"];
 
-    if network.to_string().contains("1u16") {
+    if public_input_str.contains("1u16") {
         let authorization_structure: Result<Authorization<TestnetV0>, Error> =
             serde_json::from_value(auth.clone());
         check_authorization_testnet(authorization_structure, None, None).await
-    } else if network.to_string().contains("0u16") {
+    } else if public_input_str.contains("0u16") {
         let authorization_structure: Result<Authorization<MainnetV0>, Error> =
             serde_json::from_value(auth.clone());
         check_authorization_mainnet(authorization_structure, None, None).await
@@ -228,7 +222,8 @@ async fn get_attestation_for_invalid_inputs(
         )
         .await
     } else {
-        return response("Network not implemented", StatusCode::BAD_REQUEST, None);
+        return HttpResponse::Ok()
+                .json(generate_invalid_input_attestation(payload.0, signer_wallet).await);
     }
 }
 

@@ -23,8 +23,7 @@ async fn main() -> std::io::Result<()> {
                 "0xCf30295AfC4F12FfAC6EE96Da3607e7749881BA7".into(),
                 68239483,
                 421614,
-                port_clone,
-                "http://localhost:3030".into(),
+                port_clone
             );
 
         listener.run().await
