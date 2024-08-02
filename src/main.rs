@@ -24,7 +24,7 @@ async fn main() -> std::io::Result<()> {
                 68239483,
                 421614,
                 port_clone,
-                false
+                false,
             );
 
         listener.run().await
@@ -91,14 +91,14 @@ mod tests {
         let app = test::init_service(App::new().service(handler::generate_proof)).await;
         let private_input = fs::read("./app/sample_auth.txt").await.unwrap();
 
-        let payload = kalypso_generator_models::models::InputPayload {
-            public: [
+        let payload = kalypso_generator_models::models::InputPayload::from_plain_secrets(
+            [
                 123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49,
                 117, 49, 54, 34, 10, 125,
             ]
-            .to_vec(),
-            secrets: Some(private_input),
-        };
+            .into(),
+            private_input,
+        );
 
         // fs::write("payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
 
@@ -117,10 +117,8 @@ mod tests {
         let app = test::init_service(App::new().service(handler::check_input_handler)).await;
 
         let secrets = fs::read("./app/checkInput.txt").await.unwrap();
-        let payload = kalypso_generator_models::models::InputPayload {
-            public: vec![],
-            secrets: Some(secrets),
-        };
+        let payload =
+            kalypso_generator_models::models::InputPayload::from_plain_secrets(vec![], secrets);
         // fs::write("payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
 
         let req = test::TestRequest::post()
@@ -146,10 +144,8 @@ mod tests {
         let app = test::init_service(App::new().service(handler::check_input_handler)).await;
 
         let secrets = "this is an invalid input".into();
-        let payload = kalypso_generator_models::models::InputPayload {
-            public: vec![],
-            secrets: Some(secrets),
-        };
+        let payload =
+            kalypso_generator_models::models::InputPayload::from_plain_secrets(vec![], secrets);
 
         // fs::write("payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
 

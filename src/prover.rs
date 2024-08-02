@@ -144,10 +144,10 @@ pub async fn prove_auth_mainnet(
     let check_program = process.contains_program(program.id());
     assert!(check_program);
 
-    let private_inputs = payload.clone().secrets.unwrap();
+    let private_inputs = payload.get_plain_secrets().unwrap();
     let secrets = String::from_utf8(private_inputs).unwrap();
     let value: Value = serde_json::from_str(&secrets).unwrap();
-    let public_inputs = payload.public;
+    let public_inputs = payload.get_public();
 
     let private_input_structure: Result<PrivateInputsMainnet, Error> =
         serde_json::from_value(value);
@@ -298,10 +298,10 @@ pub async fn prove_auth_testnet(
     let check_program = process.contains_program(program.id());
     assert!(check_program);
 
-    let private_inputs = payload.clone().secrets.unwrap();
+    let private_inputs = payload.clone().get_plain_secrets().unwrap();
     let secrets = String::from_utf8(private_inputs).unwrap();
     let value: Value = serde_json::from_str(&secrets).unwrap();
-    let public_inputs = payload.public;
+    let public_inputs = payload.get_public();
     let private_input_structure: Result<PrivateInputsTestnet, Error> =
         serde_json::from_value(value);
 

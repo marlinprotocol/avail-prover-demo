@@ -81,7 +81,7 @@ async fn generate_proof(
     log::info!("Request received by the avail prover");
 
     let network = {
-        let prover_data: ethers::types::Bytes = payload.clone().public.into();
+        let prover_data: ethers::types::Bytes = payload.clone().get_public().into();
         String::from_utf8(prover_data.0.to_vec()).unwrap()
     };
 
@@ -140,12 +140,9 @@ async fn check_input_handler(
     payload: web::Json<kalypso_generator_models::models::InputPayload>,
 ) -> impl Responder {
     let default_response = kalypso_ivs_models::models::CheckInputResponse { valid: false };
-    let private_input = match payload.clone().secrets {
-        Some(data) => data,
-        None => return HttpResponse::Ok().json(default_response),
-    };
+    let private_input = payload.clone().get_plain_secrets().unwrap();
 
-    let public_input = payload.clone().public;
+    let public_input = payload.clone().get_public();
     let public_input_str = match std::str::from_utf8(&public_input) {
         Ok(data) => data,
         Err(_) => return HttpResponse::Ok().json(default_response),
@@ -223,7 +220,7 @@ async fn get_attestation_for_invalid_inputs(
         .await
     } else {
         return HttpResponse::Ok()
-                .json(generate_invalid_input_attestation(payload.0, signer_wallet).await);
+            .json(generate_invalid_input_attestation(payload.0, signer_wallet).await);
     }
 }
 
