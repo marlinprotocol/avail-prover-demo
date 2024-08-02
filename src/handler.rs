@@ -145,18 +145,29 @@ async fn check_input_handler(
         None => return HttpResponse::Ok().json(default_response),
     };
 
+    let public_input = payload.clone().public;
+    let public_input_str = match std::str::from_utf8(&public_input) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::Ok().json(default_response),
+    };
+
+    let auth_value_pub: Value = match serde_json::from_str(&public_input_str) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::Ok().json(default_response),
+    };
+
     let private_input_str = match std::str::from_utf8(&private_input) {
         Ok(data) => data,
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let auth_value: Value = match serde_json::from_str(&private_input_str) {
+    let auth_value_pvt: Value = match serde_json::from_str(&private_input_str) {
         Ok(data) => data,
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let network = &auth_value["network"];
-    let auth = &auth_value["auth"];
+    let network = &auth_value_pub["network"];
+    let auth = &auth_value_pvt["auth"];
 
     if network.to_string().contains("1u16") {
         let authorization_structure: Result<Authorization<TestnetV0>, Error> =
@@ -168,7 +179,7 @@ async fn check_input_handler(
         check_authorization_mainnet(authorization_structure, None, None).await
     } else {
         return HttpResponse::Ok()
-            .json(kalypso_ivs_models::models::CheckInputResponse { valid: true });
+            .json(kalypso_ivs_models::models::CheckInputResponse { valid: false });
     }
 }
 
@@ -196,7 +207,24 @@ async fn get_attestation_for_invalid_inputs(
         }
     };
 
-    let network = &auth_value["network"];
+    let public_input = payload.clone().public;
+    let public_input_str = match std::str::from_utf8(&public_input) {
+        Ok(data) => data,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .json(kalypso_ivs_models::models::CheckInputResponse { valid: false })
+        }
+    };
+
+    let auth_value_pub: Value = match serde_json::from_str(&public_input_str) {
+        Ok(data) => data,
+        Err(_) => {
+            return HttpResponse::Ok()
+                .json(generate_invalid_input_attestation(payload.0, signer_wallet).await);
+        }
+    };
+
+    let network = &auth_value_pub["network"];
     let auth = &auth_value["auth"];
     if network.to_string().contains("1u16") {
         let authorization_structure: Result<Authorization<TestnetV0>, Error> =
