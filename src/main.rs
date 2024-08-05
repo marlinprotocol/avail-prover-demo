@@ -11,12 +11,15 @@ async fn main() -> std::io::Result<()> {
 
     let port: u16 = 3030;
     let port_clone = port.clone().to_string();
+    let enclave_key = hex::encode(fs::read("./app/secp.sec").unwrap());
+    println!("enclave key: {}", enclave_key);
 
+    let enclave_key_clone = enclave_key.clone();
     let handle_1 = tokio::spawn(async {
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
                 "0x704f1b9586EEf4B30C4f4658aA132bd9dE62cc5C".into(),
-                hex::encode(fs::read("./app/secp.sec").unwrap()),
+                enclave_key_clone,
                 "19".into(),
                 "https://arb-sepolia.g.alchemy.com/v2/cFwacd_RbVpNrezyxZEvO6AnnCuO-kxt".into(),
                 "2aa70ff28eaa5ba2a57ca3f4c66d654e0386ff65a0467623b12535b22ce3f2ad".into(),
@@ -32,9 +35,7 @@ async fn main() -> std::io::Result<()> {
     });
     handles.push(handle_1);
 
-    let handle_2 = tokio::spawn(
-        server::ProvingServer::new(fs::read("./app/secp.sec").unwrap(), port).start_server(),
-    );
+    let handle_2 = tokio::spawn(server::ProvingServer::new(enclave_key, port).start_server());
     handles.push(handle_2);
 
     for handle in handles {

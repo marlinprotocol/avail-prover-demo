@@ -10,7 +10,7 @@ pub struct ProvingServer {
 }
 
 impl ProvingServer {
-    pub fn new(enclave_key: Vec<u8>, port: u16) -> Self {
+    pub fn new(enclave_key: String, port: u16) -> Self {
         let enclave_key = hex::decode(enclave_key).unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
         ProvingServer { enclave_key, port }
