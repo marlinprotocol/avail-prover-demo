@@ -2,6 +2,7 @@ mod handler;
 mod model;
 mod prover;
 mod server;
+use std::fs;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -15,7 +16,7 @@ async fn main() -> std::io::Result<()> {
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
                 "0x704f1b9586EEf4B30C4f4658aA132bd9dE62cc5C".into(),
-                hex::encode(handler::get_secp_private_key()),
+                hex::encode(fs::read("./app/secp.sec").unwrap()),
                 "19".into(),
                 "https://arb-sepolia.g.alchemy.com/v2/cFwacd_RbVpNrezyxZEvO6AnnCuO-kxt".into(),
                 "2aa70ff28eaa5ba2a57ca3f4c66d654e0386ff65a0467623b12535b22ce3f2ad".into(),
@@ -31,7 +32,9 @@ async fn main() -> std::io::Result<()> {
     });
     handles.push(handle_1);
 
-    let handle_2 = tokio::spawn(server::ProvingServer::new(port).start_server());
+    let handle_2 = tokio::spawn(
+        server::ProvingServer::new(fs::read("./app/secp.sec").unwrap(), port).start_server(),
+    );
     handles.push(handle_2);
 
     for handle in handles {
@@ -100,7 +103,12 @@ mod tests {
             private_input,
         );
 
-        fs::write("generate_proof_payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
+        fs::write(
+            "generate_proof_payload.json",
+            serde_json::to_string(&payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/generateProof")
@@ -119,7 +127,12 @@ mod tests {
         let secrets = fs::read("./app/checkInput.txt").await.unwrap();
         let payload =
             kalypso_generator_models::models::InputPayload::from_plain_secrets(vec![], secrets);
-        fs::write("1_check_valid_input_payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
+        fs::write(
+            "1_check_valid_input_payload.json",
+            serde_json::to_string(&payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/checkInput")
@@ -147,7 +160,12 @@ mod tests {
         let payload =
             kalypso_generator_models::models::InputPayload::from_plain_secrets(vec![], secrets);
 
-        fs::write("2_check_invalid_input_payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
+        fs::write(
+            "2_check_invalid_input_payload.json",
+            serde_json::to_string(&payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/checkInput")
@@ -180,9 +198,12 @@ mod tests {
             secret_data,
         );
 
-        fs::write("3_get_attestation_for_valid_input.json", serde_json::to_string(&ask_payload).unwrap())
-            .await
-            .unwrap();
+        fs::write(
+            "3_get_attestation_for_valid_input.json",
+            serde_json::to_string(&ask_payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/getAttestationForInvalidInputs")
@@ -215,7 +236,12 @@ mod tests {
             secret_data,
         );
 
-        fs::write("4_get_attestation_for_invalid_inputs_payload.json", serde_json::to_string(&ask_payload).unwrap()).await.unwrap();
+        fs::write(
+            "4_get_attestation_for_invalid_inputs_payload.json",
+            serde_json::to_string(&ask_payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/getAttestationForInvalidInputs")
@@ -259,7 +285,12 @@ mod tests {
             market_id: "19".into(),
         };
 
-        fs::write("5_check_encrypted_input_payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
+        fs::write(
+            "5_check_encrypted_input_payload.json",
+            serde_json::to_string(&payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/checkEncryptedInputs")
@@ -303,7 +334,12 @@ mod tests {
             market_id: "19".into(),
         };
 
-        fs::write("6_check_encrypted_invalid_input_payload.json", serde_json::to_string(&payload).unwrap()).await.unwrap();
+        fs::write(
+            "6_check_encrypted_invalid_input_payload.json",
+            serde_json::to_string(&payload).unwrap(),
+        )
+        .await
+        .unwrap();
 
         let req = test::TestRequest::post()
             .uri("/checkEncryptedInputs")

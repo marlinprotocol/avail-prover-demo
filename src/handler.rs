@@ -2,6 +2,7 @@ use crate::{
     model::{self},
     prover,
 };
+use actix_web::web::Data;
 use actix_web::{get, http::StatusCode, post, web, HttpResponse, Responder};
 use ethers::{
     core::k256::ecdsa::SigningKey,
@@ -10,6 +11,7 @@ use ethers::{
 use kalypso_helper::response::response;
 use serde_json::{Error, Value};
 use snarkvm::prelude::{Authorization, Execution, MainnetV0, TestnetV0};
+use std::sync::{Arc, Mutex};
 use std::{fs, str::FromStr};
 
 // Get generator status from the supervisord
@@ -177,8 +179,10 @@ async fn check_input_handler(
 #[post("/getAttestationForInvalidInputs")]
 async fn get_attestation_for_invalid_inputs(
     payload: web::Json<kalypso_ivs_models::models::InvalidInputPayload>,
+    ecies_priv_key: Data<Arc<Mutex<Vec<u8>>>>,
 ) -> impl Responder {
-    let signer_wallet = get_signer();
+    let ecies_priv_key = { ecies_priv_key.lock().unwrap().clone() };
+    let signer_wallet = get_signer(ecies_priv_key);
 
     let private_input = payload.clone().get_plain_secrets().unwrap();
 
@@ -227,11 +231,13 @@ async fn get_attestation_for_invalid_inputs(
 #[post("/checkEncryptedInputs")]
 async fn check_encrypted_input(
     payload: web::Json<kalypso_ivs_models::models::EncryptedInputPayload>,
+    ecies_priv_key: Data<Arc<Mutex<Vec<u8>>>>,
 ) -> impl Responder {
     let payload = payload.0;
     let (signature, ivs_pub_key) = {
         let message = &payload.market_id;
-        let signer_wallet = get_signer();
+        let ecies_priv_key = { ecies_priv_key.lock().unwrap().clone() };
+        let signer_wallet = get_signer(ecies_priv_key);
         let digest = ethers::utils::keccak256(message.as_bytes());
 
         let read_secp_pub_key = fs::read("./app/secp.pub").unwrap();
@@ -273,11 +279,10 @@ async fn check_encrypted_input(
             };
 
         let encrypted_data = hex::decode(response_payload.encrypted_data).unwrap();
-        let decrypted_data = kalypso_helper::secret_inputs_helpers::decrypt_ecies(
-            &get_secp_private_key(),
-            &encrypted_data,
-        )
-        .unwrap();
+        let ecies_priv_key = { ecies_priv_key.lock().unwrap().clone() };
+        let decrypted_data =
+            kalypso_helper::secret_inputs_helpers::decrypt_ecies(&ecies_priv_key, &encrypted_data)
+                .unwrap();
 
         let decrypted_secret = String::from_utf8(decrypted_data).unwrap();
         let auth_value: Value = match serde_json::from_str(&decrypted_secret) {
@@ -438,16 +443,12 @@ async fn generate_invalid_input_attestation(
     return response;
 }
 
-fn get_signer() -> Wallet<SigningKey> {
-    let secp_private_key = secp256k1::SecretKey::from_slice(&get_secp_private_key())
+fn get_signer(ecies_priv_key: Vec<u8>) -> Wallet<SigningKey> {
+    let secp_private_key = secp256k1::SecretKey::from_slice(&ecies_priv_key)
         .unwrap()
         .display_secret()
         .to_string();
     secp_private_key.parse::<LocalWallet>().unwrap()
-}
-
-pub fn get_secp_private_key() -> Vec<u8> {
-    fs::read("./app/secp.sec").unwrap()
 }
 
 async fn check_authorization_testnet(
