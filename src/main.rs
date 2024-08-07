@@ -18,7 +18,7 @@ async fn main() -> std::io::Result<()> {
     let handle_1 = tokio::spawn(async {
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
-                "0x704f1b9586EEf4B30C4f4658aA132bd9dE62cc5C".into(),
+                "0xc6dE583B87716E351e4Fb60D687b9330877DbaF4".into(),
                 enclave_key_clone,
                 "19".into(),
                 "https://arb-sepolia.g.alchemy.com/v2/cFwacd_RbVpNrezyxZEvO6AnnCuO-kxt".into(),
