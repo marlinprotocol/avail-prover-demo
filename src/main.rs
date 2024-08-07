@@ -127,7 +127,11 @@ mod tests {
 
         let secrets = fs::read("./app/checkInput.txt").await.unwrap();
         let payload =
-            kalypso_generator_models::models::InputPayload::from_plain_secrets(vec![], secrets);
+            kalypso_generator_models::models::InputPayload::from_plain_secrets([
+                123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49,
+                117, 49, 54, 34, 10, 125,
+            ]
+            .into(), secrets);
         fs::write(
             "1_check_valid_input_payload.json",
             serde_json::to_string(&payload).unwrap(),
@@ -159,7 +163,11 @@ mod tests {
 
         let secrets = "this is an invalid input".into();
         let payload =
-            kalypso_generator_models::models::InputPayload::from_plain_secrets(vec![], secrets);
+            kalypso_generator_models::models::InputPayload::from_plain_secrets([
+                123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49,
+                117, 49, 54, 34, 10, 125,
+            ]
+            .into(), secrets);
 
         fs::write(
             "2_check_invalid_input_payload.json",
@@ -216,7 +224,6 @@ mod tests {
 
         let result = test::read_body(resp).await;
         let result_json: serde_json::Value = serde_json::from_slice(&result).unwrap();
-
         // when payload is valid, signature is not required to be sent
         let expected_json = json!({
             "valid": true
