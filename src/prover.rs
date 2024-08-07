@@ -117,7 +117,7 @@ pub async fn prove_auth_mainnet(
     type CurrentNetwork = MainnetV0;
     type CurrentAleo = AleoV0;
 
-    let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
+    let read_secp_private_key = fs::read("/app/secp.sec").unwrap();
     let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
         .unwrap()
         .display_secret()
@@ -271,7 +271,7 @@ pub async fn prove_auth_testnet(
     type CurrentNetwork = TestnetV0;
     type CurrentAleo = AleoTestnetV0;
 
-    let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
+    let read_secp_private_key = fs::read("/app/secp.sec").unwrap();
     let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
         .unwrap()
         .display_secret()
@@ -505,7 +505,7 @@ pub async fn verify_execution_proof_mainnet(
 
 // async fn invalid_input_response(ask_id: u64, public_inputs: Bytes) -> GenerateProofResponse {
 //     log::info!("Invalid inputs received for ask ID : {}", ask_id);
-//     let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
+//     let read_secp_private_key = fs::read("/app/secp.sec").unwrap();
 //     let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
 //         .unwrap()
 //         .display_secret()

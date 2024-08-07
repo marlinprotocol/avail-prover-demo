@@ -245,7 +245,7 @@ async fn check_encrypted_input(
         let signer_wallet = get_signer(ecies_priv_key);
         let digest = ethers::utils::keccak256(message.as_bytes());
 
-        let read_secp_pub_key = fs::read("./app/secp.pub").unwrap();
+        let read_secp_pub_key = fs::read("/app/secp.pub").unwrap();
         let mut modified_secp_pub_key = vec![0x04];
         modified_secp_pub_key.extend_from_slice(&read_secp_pub_key);
         let signature = signer_wallet
@@ -347,10 +347,7 @@ async fn verify_inputs_and_proof(
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let auth_value_pub: Value = serde_json::from_str(&public_input_str).unwrap();
-    let network = &auth_value_pub["network"];
-
-    if network.to_string().contains("1u16") {
+    if public_input_str.contains("1u16") {
         let execution_structure: Result<Execution<TestnetV0>, Error> =
             serde_json::from_value(exec_value.clone());
 
@@ -378,7 +375,7 @@ async fn verify_inputs_and_proof(
                 );
             }
         }
-    } else if network.to_string().contains("0u16") {
+    } else if public_input_str.contains("0u16") {
         let execution_structure: Result<Execution<MainnetV0>, Error> =
             serde_json::from_value(exec_value.clone());
 

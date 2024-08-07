@@ -11,7 +11,7 @@ async fn main() -> std::io::Result<()> {
 
     let port: u16 = 3030;
     let port_clone = port.clone().to_string();
-    let enclave_key = hex::encode(fs::read("./app/secp.sec").unwrap());
+    let enclave_key = hex::encode(fs::read("/app/secp.sec").unwrap());
     println!("enclave key: {}", enclave_key);
 
     let enclave_key_clone = enclave_key.clone();
@@ -202,7 +202,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_valid_input_with_signature() {
-        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
         let app = test::init_service(
             App::new()
@@ -244,7 +244,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_invalid_input_with_signature() {
-        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
         let app = test::init_service(
             App::new()
@@ -289,7 +289,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_check_encrypted_input() {
         //tough one.
-        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
 
         let app = test::init_service(
@@ -343,7 +343,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_encrypted_invalid_input() {
-        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
 
         let app = test::init_service(
