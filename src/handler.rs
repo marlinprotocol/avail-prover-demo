@@ -184,7 +184,13 @@ async fn get_attestation_for_invalid_inputs(
     let ecies_priv_key = { ecies_priv_key.lock().unwrap().clone() };
     let signer_wallet = get_signer(ecies_priv_key);
 
-    let private_input = payload.clone().get_plain_secrets().unwrap();
+    let private_input = match payload.clone().get_plain_secrets() {
+        Ok(data) => data,
+        Err(_) => {
+            return HttpResponse::NotImplemented()
+            .json(kalypso_ivs_models::models::CheckInputResponse { valid: false });
+        }
+    };
 
     let private_input_str = match std::str::from_utf8(&private_input) {
         Ok(data) => data,
@@ -201,7 +207,6 @@ async fn get_attestation_for_invalid_inputs(
                 .json(generate_invalid_input_attestation(payload.0, signer_wallet).await);
         }
     };
-
     let network = &auth_value["network"];
     let auth = &auth_value["auth"];
     if network.to_string().contains("1u16") {
