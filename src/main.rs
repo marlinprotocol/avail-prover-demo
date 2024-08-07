@@ -50,11 +50,13 @@ async fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use crate::handler;
+    use actix_web::web::Data;
     use actix_web::{test, App};
     use kalypso_ivs_models::models::EncryptedInputPayload;
     use log::warn;
     use serde::{Deserialize, Serialize};
     use serde_json::{json, Value};
+    use std::sync::{Arc, Mutex};
     use tokio::fs;
 
     #[actix_rt::test]
@@ -126,12 +128,14 @@ mod tests {
         let app = test::init_service(App::new().service(handler::check_input_handler)).await;
 
         let secrets = fs::read("./app/checkInput.txt").await.unwrap();
-        let payload =
-            kalypso_generator_models::models::InputPayload::from_plain_secrets([
+        let payload = kalypso_generator_models::models::InputPayload::from_plain_secrets(
+            [
                 123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49,
                 117, 49, 54, 34, 10, 125,
             ]
-            .into(), secrets);
+            .into(),
+            secrets,
+        );
         fs::write(
             "1_check_valid_input_payload.json",
             serde_json::to_string(&payload).unwrap(),
@@ -162,12 +166,14 @@ mod tests {
         let app = test::init_service(App::new().service(handler::check_input_handler)).await;
 
         let secrets = "this is an invalid input".into();
-        let payload =
-            kalypso_generator_models::models::InputPayload::from_plain_secrets([
+        let payload = kalypso_generator_models::models::InputPayload::from_plain_secrets(
+            [
                 123, 10, 32, 32, 32, 32, 34, 110, 101, 116, 119, 111, 114, 107, 34, 58, 32, 34, 49,
                 117, 49, 54, 34, 10, 125,
             ]
-            .into(), secrets);
+            .into(),
+            secrets,
+        );
 
         fs::write(
             "2_check_invalid_input_payload.json",
@@ -196,9 +202,14 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_valid_input_with_signature() {
-        let app =
-            test::init_service(App::new().service(handler::get_attestation_for_invalid_inputs))
-                .await;
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = Arc::new(Mutex::new(enclave_key));
+        let app = test::init_service(
+            App::new()
+                .service(handler::get_attestation_for_invalid_inputs)
+                .app_data(Data::new(enclave_key)),
+        )
+        .await;
         let secret_data = fs::read("./app/checkInput.txt").await.unwrap();
 
         let ask_payload = kalypso_ivs_models::models::InvalidInputPayload::from_plain_secrets(
@@ -233,9 +244,14 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_invalid_input_with_signature() {
-        let app =
-            test::init_service(App::new().service(handler::get_attestation_for_invalid_inputs))
-                .await;
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = Arc::new(Mutex::new(enclave_key));
+        let app = test::init_service(
+            App::new()
+                .service(handler::get_attestation_for_invalid_inputs)
+                .app_data(Data::new(enclave_key)),
+        )
+        .await;
         let secret_data = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5]; // these are invalid inputs
 
         let ask_payload = kalypso_ivs_models::models::InvalidInputPayload::from_plain_secrets(
@@ -273,7 +289,15 @@ mod tests {
     #[actix_rt::test]
     async fn test_check_encrypted_input() {
         //tough one.
-        let app = test::init_service(App::new().service(handler::check_encrypted_input)).await;
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = Arc::new(Mutex::new(enclave_key));
+
+        let app = test::init_service(
+            App::new()
+                .service(handler::check_encrypted_input)
+                .app_data(Data::new(enclave_key)),
+        )
+        .await;
         let data_to_encrypt = fs::read("./app/checkInput.txt").await.unwrap();
 
         let matching_engine_pubkey =
@@ -319,8 +343,15 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_encrypted_invalid_input() {
-        //tough one.
-        let app = test::init_service(App::new().service(handler::check_encrypted_input)).await;
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = Arc::new(Mutex::new(enclave_key));
+
+        let app = test::init_service(
+            App::new()
+                .service(handler::check_encrypted_input)
+                .app_data(Data::new(enclave_key)),
+        )
+        .await;
         let data_to_encrypt = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
 
         warn!("Matching Engine IP hardcoded, it should be fetched from somewhere else");

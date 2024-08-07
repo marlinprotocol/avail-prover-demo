@@ -188,7 +188,7 @@ async fn get_attestation_for_invalid_inputs(
         Ok(data) => data,
         Err(_) => {
             return HttpResponse::NotImplemented()
-            .json(kalypso_ivs_models::models::CheckInputResponse { valid: false });
+                .json(kalypso_ivs_models::models::CheckInputResponse { valid: false });
         }
     };
 
