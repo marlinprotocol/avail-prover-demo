@@ -11,7 +11,7 @@ async fn main() -> std::io::Result<()> {
 
     let port: u16 = 3030;
     let port_clone = port.clone().to_string();
-    let enclave_key = hex::encode(fs::read("/app/secp.sec").unwrap());
+    let enclave_key = hex::encode(fs::read("./app/secp.sec").unwrap());
     println!("enclave key: {}", enclave_key);
 
     let enclave_key_clone = enclave_key.clone();
@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
                 "2aa70ff28eaa5ba2a57ca3f4c66d654e0386ff65a0467623b12535b22ce3f2ad".into(),
                 "0xBD3700b9e4292C4842e6CB87205192Fa96e8Ed05".into(),
                 "0xCf30295AfC4F12FfAC6EE96Da3607e7749881BA7".into(),
-                68239483,
+                69330000,
                 421614,
                 port_clone,
                 false,
@@ -202,7 +202,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_valid_input_with_signature() {
-        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
         let app = test::init_service(
             App::new()
@@ -244,7 +244,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_invalid_input_with_signature() {
-        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
         let app = test::init_service(
             App::new()
@@ -289,7 +289,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_check_encrypted_input() {
         //tough one.
-        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
 
         let app = test::init_service(
@@ -343,7 +343,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_check_encrypted_invalid_input() {
-        let enclave_key = fs::read("/app/secp.sec").await.unwrap();
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
 
         let app = test::init_service(
