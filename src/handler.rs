@@ -289,7 +289,17 @@ async fn check_encrypted_input(
             kalypso_helper::secret_inputs_helpers::decrypt_ecies(&ecies_priv_key, &encrypted_data)
                 .unwrap();
 
-        let decrypted_secret = String::from_utf8(decrypted_data).unwrap();
+        let decrypted_secret = {
+            let decrypted_secret = String::from_utf8(decrypted_data.clone());
+            if decrypted_secret.is_ok() {
+                decrypted_secret.unwrap()
+            } else {
+                let decompreseed_decrypted_data =
+                    kalypso_helper::secret_inputs_helpers::flatten(&decrypted_data).unwrap();
+                String::from_utf8(decompreseed_decrypted_data).unwrap()
+            }
+        };
+
         let auth_value: Value = match serde_json::from_str(&decrypted_secret) {
             Ok(data) => data,
             Err(_) => {
