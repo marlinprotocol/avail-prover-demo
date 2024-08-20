@@ -315,6 +315,7 @@ mod tests {
             encrypted_secrets: encrypted_data.encrypted_data,
             me_decryption_url: "http://13.201.131.193:3000/decryptRequest".into(),
             market_id: "19".into(),
+            public_inputs: None
         };
 
         fs::write(
@@ -371,11 +372,12 @@ mod tests {
             encrypted_secrets: encrypted_data.encrypted_data,
             me_decryption_url: "http://13.201.131.193:3000/decryptRequest".into(),
             market_id: "19".into(),
+            public_inputs: None
         };
 
         fs::write(
             "6_check_encrypted_invalid_input_payload.json",
-            serde_json::to_string(&payload).unwrap(),
+            serde_json::to_string(&payload).unwrap( ),
         )
         .await
         .unwrap();
