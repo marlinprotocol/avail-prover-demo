@@ -94,7 +94,15 @@ mod tests {
 
     #[actix_rt::test]
     async fn test_generate_proof() {
-        let app = test::init_service(App::new().service(handler::generate_proof)).await;
+        let enclave_key = fs::read("./app/secp.sec").await.unwrap();
+        let enclave_key = Arc::new(Mutex::new(enclave_key));
+
+        let app = test::init_service(
+            App::new()
+                .service(handler::generate_proof)
+                .app_data(Data::new(enclave_key)),
+        )
+        .await;
         let private_input = fs::read("./app/sample_auth.txt").await.unwrap();
 
         let payload = kalypso_generator_models::models::InputPayload::from_plain_secrets(

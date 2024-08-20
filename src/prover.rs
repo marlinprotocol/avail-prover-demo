@@ -112,13 +112,13 @@ pub fn prove_benchmark(
 
 pub async fn prove_auth_mainnet(
     payload: kalypso_generator_models::models::InputPayload,
+    enclave_private_key: Vec<u8>,
 ) -> Result<GenerateProofResponse, model::InputError> {
     let rng = &mut thread_rng();
     type CurrentNetwork = MainnetV0;
     type CurrentAleo = AleoV0;
 
-    let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
-    let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
+    let secp_private_key = secp256k1::SecretKey::from_slice(&enclave_private_key)
         .unwrap()
         .display_secret()
         .to_string();
@@ -266,13 +266,13 @@ pub async fn prove_auth_mainnet(
 
 pub async fn prove_auth_testnet(
     payload: kalypso_generator_models::models::InputPayload,
+    enclave_private_key: Vec<u8>,
 ) -> Result<GenerateProofResponse, model::InputError> {
     let rng = &mut thread_rng();
     type CurrentNetwork = TestnetV0;
     type CurrentAleo = AleoTestnetV0;
 
-    let read_secp_private_key = fs::read("./app/secp.sec").unwrap();
-    let secp_private_key = secp256k1::SecretKey::from_slice(&read_secp_private_key)
+    let secp_private_key = secp256k1::SecretKey::from_slice(&enclave_private_key)
         .unwrap()
         .display_secret()
         .to_string();

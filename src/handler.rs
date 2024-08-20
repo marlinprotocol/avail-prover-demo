@@ -79,6 +79,7 @@ async fn benchmark() -> impl Responder {
 #[post("/generateProof")]
 async fn generate_proof(
     payload: web::Json<kalypso_generator_models::models::InputPayload>,
+    ecies_priv_key: Data<Arc<Mutex<Vec<u8>>>>,
 ) -> impl Responder {
     log::info!("Request received by the avail prover");
 
@@ -87,11 +88,12 @@ async fn generate_proof(
         String::from_utf8(prover_data.0.to_vec()).unwrap()
     };
 
+    let enclave_key = { ecies_priv_key.lock().unwrap().clone() };
     let prove_result;
     if network.contains("1u16") {
-        prove_result = prover::prove_auth_testnet(payload.0).await;
+        prove_result = prover::prove_auth_testnet(payload.0, enclave_key).await;
     } else if network.contains("0u16") {
-        prove_result = prover::prove_auth_mainnet(payload.0).await;
+        prove_result = prover::prove_auth_mainnet(payload.0, enclave_key).await;
     } else {
         return Ok(response(
             "Network not implemented",
