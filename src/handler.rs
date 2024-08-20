@@ -239,6 +239,7 @@ async fn check_encrypted_input(
     ecies_priv_key: Data<Arc<Mutex<Vec<u8>>>>,
 ) -> impl Responder {
     let payload = payload.0;
+    // log::info!("{:?}", &payload);
     let (signature, ivs_pub_key) = {
         let message = &payload.market_id;
         let ecies_priv_key = { ecies_priv_key.lock().unwrap().clone() };
@@ -320,7 +321,7 @@ async fn check_encrypted_input(
                 { serde_json::from_value(auth.clone()) };
             check_authorization_mainnet(authorization_structure, None, None).await
         } else {
-            return response("Network not implemented", StatusCode::BAD_REQUEST, None);
+            return response("Network not implemented", StatusCode::NOT_ACCEPTABLE, None);
         }
     } else {
         response(
