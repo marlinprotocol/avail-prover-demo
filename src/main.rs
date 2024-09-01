@@ -18,15 +18,15 @@ async fn main() -> std::io::Result<()> {
     let handle_1 = tokio::spawn(async {
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
-                "0x704f1b9586EEf4B30C4f4658aA132bd9dE62cc5C".into(),
+                "0xbCa21b37A139723F5546b5951f00B42e8E9a7D85".into(),
                 enclave_key_clone,
-                "19".into(),
-                "https://arb-sepolia.g.alchemy.com/v2/cFwacd_RbVpNrezyxZEvO6AnnCuO-kxt".into(),
-                "c53dd8e14d0a4f8fa7b87c66adfc0d6197159732fd29517ea6783741423b9f54".into(),
-                "0xBD3700b9e4292C4842e6CB87205192Fa96e8Ed05".into(),
-                "0xCf30295AfC4F12FfAC6EE96Da3607e7749881BA7".into(),
-                69330000,
-                421614,
+                "0".into(),
+                "http://88.99.141.248:8545".into(),
+                "0db6072bd69de885b93a846133dc22cde7b612f55022fc5d6a2e492e0e61698d".into(),
+                "0x6441dcD0f88f70E912A873baaeC5d02e564Ebc78".into(),
+                "0x103e9C0e8E0A745A41F8A52142F452E7f8fAaCAd".into(),
+                1,
+                987,
                 port_clone,
                 false,
             );
