@@ -13,6 +13,7 @@ use serde_json::{Error, Value};
 use snarkvm::prelude::{Authorization, Execution, MainnetV0, TestnetV0};
 use std::sync::{Arc, Mutex};
 use std::{fs, str::FromStr};
+use tokio::sync::Semaphore;
 
 // Get generator status from the supervisord
 #[get("/test")]
@@ -80,9 +81,14 @@ async fn benchmark() -> impl Responder {
 async fn generate_proof(
     payload: web::Json<kalypso_generator_models::models::InputPayload>,
     ecies_priv_key: Data<Arc<Mutex<Vec<u8>>>>,
+    semaphore: Data<Arc<Semaphore>>, // Add semaphore here
 ) -> impl Responder {
     log::info!("Request received by the avail prover");
 
+    // Acquire a permit from the semaphore
+    let _permit = semaphore.acquire().await.unwrap();
+
+    // Existing logic
     let network = {
         let prover_data: ethers::types::Bytes = payload.clone().get_public().into();
         String::from_utf8(prover_data.0.to_vec()).unwrap()
@@ -101,7 +107,6 @@ async fn generate_proof(
             None,
         ));
     }
-
 
     match prove_result {
         Ok(prove) => {
@@ -142,7 +147,7 @@ async fn generate_proof(
         Err(e) => {
             log::error!("Could not compute proof");
             Err(e)
-        },
+        }
     }
 }
 
