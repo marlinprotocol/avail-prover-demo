@@ -14,15 +14,14 @@ async fn main() -> std::io::Result<()> {
     let enclave_key = hex::encode(fs::read("./app/secp.sec").unwrap());
     println!("enclave key: {}", enclave_key);
 
-    let enclave_key_clone = enclave_key.clone();
     let handle_1 = tokio::spawn(async {
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
                 "0xbCa21b37A139723F5546b5951f00B42e8E9a7D85".into(),
-                enclave_key_clone,
+                "1eb62fe922b3531e1f849765fd20b5bc6d2e6e890a8642f6c103ae99868dc6f3".into(),
                 "0".into(),
-                "http://88.99.141.248:8545".into(),
-                "0db6072bd69de885b93a846133dc22cde7b612f55022fc5d6a2e492e0e61698d".into(),
+                "http://localhost:8545".into(),
+                "8f6a5910da16004d549bc3fcb0464f1e8572417038b2efb5900926d410f46224".into(),
                 "0x6441dcD0f88f70E912A873baaeC5d02e564Ebc78".into(),
                 "0x103e9C0e8E0A745A41F8A52142F452E7f8fAaCAd".into(),
                 1,

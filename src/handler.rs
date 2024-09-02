@@ -245,16 +245,22 @@ async fn check_encrypted_input(
     let (signature, ivs_pub_key) = {
         let message = &payload.market_id;
         let ecies_priv_key = { ecies_priv_key.lock().unwrap().clone() };
-        let signer_wallet = get_signer(ecies_priv_key);
+        let signer_wallet = get_signer(ecies_priv_key.clone());
         let digest = ethers::utils::keccak256(message.as_bytes());
 
-        let read_secp_pub_key = fs::read("./app/secp.pub").unwrap();
-        let mut modified_secp_pub_key = vec![0x04];
-        modified_secp_pub_key.extend_from_slice(&read_secp_pub_key);
+        let ecies_priv_key_array: [u8; 32] = ecies_priv_key[..]
+            .try_into()
+            .expect("Private key must be 32 bytes");
+
         let signature = signer_wallet
             .sign_hash(ethers::types::H256(digest))
             .expect("Failed signing market id for check encrypted inputs");
-        (signature.to_string(), modified_secp_pub_key)
+        (
+            signature.to_string(),
+            kalypso_helper::secret_inputs_helpers::get_uncompressed_ecies_pubkey(
+                &ecies_priv_key_array,
+            ),
+        )
     };
     let decrypt_request_payload = kalypso_matching_engine_models::models::DecryptRequest {
         market_id: payload.market_id.to_string(),
