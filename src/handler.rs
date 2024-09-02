@@ -102,9 +102,12 @@ async fn generate_proof(
         ));
     }
 
+
     match prove_result {
         Ok(prove) => {
+            log::info!("Request received by the avail prover: Step 4");
             if prove.execution.is_some() && prove.signature.is_some() {
+                log::info!("Valid proof generated");
                 let public_inputs = prove.input.unwrap();
                 let proof_bytes = prove.execution.unwrap();
                 let signature = prove.signature.unwrap();
@@ -121,6 +124,7 @@ async fn generate_proof(
                     },
                 ));
             } else if prove.execution.is_none() && prove.signature.is_some() {
+                log::warn!("Prover detected invalid inputs, attesting the inputs as invalid");
                 let signature = prove.signature.unwrap();
                 return Ok(response(
                     "Invalid inputs received, signature generated",
@@ -128,6 +132,7 @@ async fn generate_proof(
                     Some(Value::String(signature)),
                 ));
             } else {
+                log::error!("Prover could not infer the request/proof generated");
                 return Ok(response(
                     "There was an issue while generating the proof.",
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -135,7 +140,10 @@ async fn generate_proof(
                 ));
             }
         }
-        Err(e) => Err(e),
+        Err(e) => {
+            log::error!("Could not compute proof");
+            Err(e)
+        },
     }
 }
 
