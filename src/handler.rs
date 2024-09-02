@@ -265,12 +265,22 @@ async fn check_encrypted_input(
     };
 
     let client = reqwest::Client::new();
-    let api_response = client
+    let api_response = match client
         .post(&payload.me_decryption_url)
         .json(&decrypt_request_payload)
         .send()
         .await
-        .unwrap();
+    {
+        Ok(data) => data,
+        Err(err) => {
+            dbg!(err);
+            return response(
+                "api response to matching engine failed",
+                StatusCode::EXPECTATION_FAILED,
+                None,
+            );
+        }
+    };
 
     if api_response.status().is_success() {
         let response_payload: kalypso_matching_engine_models::models::GetRequestResponse =
