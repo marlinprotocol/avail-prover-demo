@@ -327,16 +327,16 @@ async fn check_encrypted_input(
         if network.to_string().contains("1u16") {
             let authorization_structure: Result<Authorization<TestnetV0>, Error> =
                 { serde_json::from_value(auth.clone()) };
-            check_authorization_testnet(authorization_structure, None, None).await
+            return check_authorization_testnet(authorization_structure, None, None).await
         } else if network.to_string().contains("0u16") {
             let authorization_structure: Result<Authorization<MainnetV0>, Error> =
                 { serde_json::from_value(auth.clone()) };
-            check_authorization_mainnet(authorization_structure, None, None).await
+            return check_authorization_mainnet(authorization_structure, None, None).await
         } else {
             return response("Network not implemented", StatusCode::NOT_ACCEPTABLE, None);
         }
     } else {
-        response(
+        return response(
             "Could not fetch info from matching engine",
             StatusCode::FAILED_DEPENDENCY,
             None,
