@@ -105,7 +105,6 @@ async fn generate_proof(
 
     match prove_result {
         Ok(prove) => {
-            log::info!("Request received by the avail prover: Step 4");
             if prove.execution.is_some() && prove.signature.is_some() {
                 log::info!("Valid proof generated");
                 let public_inputs = prove.input.unwrap();
