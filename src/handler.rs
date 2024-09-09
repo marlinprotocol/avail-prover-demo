@@ -63,17 +63,17 @@ async fn benchmark() -> impl Responder {
     );
 
     if benchmark_proof_generation.is_err() {
-        return HttpResponse::ExpectationFailed().json(
+        HttpResponse::ExpectationFailed().json(
             kalypso_generator_models::models::BenchmarkResponse {
                 data: "Failed".to_string(),
                 time_in_ms: 0,
             },
-        );
+        )
     } else {
-        return HttpResponse::Ok().json(kalypso_generator_models::models::BenchmarkResponse {
+        HttpResponse::Ok().json(kalypso_generator_models::models::BenchmarkResponse {
             data: "Success".to_string(),
             time_in_ms: benchmark_proof_generation.unwrap().proof_generation_time,
-        });
+        })
     }
 }
 
@@ -122,11 +122,11 @@ async fn generate_proof(
                     ethers::abi::Token::Bytes(sig_bytes.to_vec()),
                 ];
                 let encoded = ethers::abi::encode(&value);
-                return Ok(HttpResponse::Ok().json(
+                Ok(HttpResponse::Ok().json(
                     kalypso_generator_models::models::GenerateProofResponse {
                         proof: encoded.to_vec(),
                     },
-                ));
+                ))
             } else if prove.execution.is_none() && prove.signature.is_some() {
                 log::warn!("Prover detected invalid inputs, attesting the inputs as invalid");
                 let signature = prove.signature.unwrap();
@@ -169,7 +169,7 @@ async fn check_input_handler(
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let auth_value_pvt: Value = match serde_json::from_str(&private_input_str) {
+    let auth_value_pvt: Value = match serde_json::from_str(private_input_str) {
         Ok(data) => data,
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
@@ -214,7 +214,7 @@ async fn get_attestation_for_invalid_inputs(
         }
     };
 
-    let auth_value: Value = match serde_json::from_str(&private_input_str) {
+    let auth_value: Value = match serde_json::from_str(private_input_str) {
         Ok(data) => data,
         Err(_) => {
             return HttpResponse::Ok()
@@ -345,7 +345,7 @@ async fn check_encrypted_input(
         if network.to_string().contains("1u16") {
             let authorization_structure: Result<Authorization<TestnetV0>, Error> =
                 { serde_json::from_value(auth.clone()) };
-            return check_authorization_testnet(authorization_structure, None, None).await;
+            check_authorization_testnet(authorization_structure, None, None).await
         } else if network.to_string().contains("0u16") {
             let authorization_structure: Result<Authorization<MainnetV0>, Error> =
                 { serde_json::from_value(auth.clone()) };
@@ -358,11 +358,11 @@ async fn check_encrypted_input(
             "checkEncryptedRequest --- response status: {}",
             api_response.status()
         );
-        return response(
+        response(
             "Could not fetch info from matching engine",
             StatusCode::FAILED_DEPENDENCY,
             None,
-        );
+        )
     }
 }
 
@@ -380,7 +380,7 @@ async fn verify_inputs_and_proof(
         Err(_) => return HttpResponse::Ok().json(default_response),
     };
 
-    let exec_value: Value = serde_json::from_str(&proof_str).unwrap();
+    let exec_value: Value = serde_json::from_str(proof_str).unwrap();
 
     let public_input = match payload.clone().public_input {
         Some(data) => data,
@@ -404,20 +404,20 @@ async fn verify_inputs_and_proof(
                     let data = kalypso_ivs_models::models::VerifyInputAndProofResponse {
                         is_input_and_proof_valid: true,
                     };
-                    return HttpResponse::Ok().json(data);
+                    HttpResponse::Ok().json(data)
                 } else {
                     let data = kalypso_ivs_models::models::VerifyInputAndProofResponse {
                         is_input_and_proof_valid: false,
                     };
-                    return HttpResponse::Ok().json(data);
+                    HttpResponse::Ok().json(data)
                 }
             }
             Err(_) => {
-                return response(
+                response(
                     "The execution input structure is invalid",
                     StatusCode::BAD_REQUEST,
                     None,
-                );
+                )
             }
         }
     } else if public_input_str.contains("0u16") {
@@ -457,11 +457,11 @@ async fn verify_inputs_and_proof(
 async fn sign_inputs_and_proof(
     _: web::Json<kalypso_ivs_models::models::SignInputsAndProofForNonConfidentialInput>,
 ) -> impl Responder {
-    return response(
+    response(
         "Not Required for this prover",
         StatusCode::BAD_REQUEST,
         None,
-    );
+    )
 }
 // Routes
 pub fn routes(conf: &mut web::ServiceConfig) {
@@ -483,7 +483,7 @@ async fn generate_invalid_input_attestation(
 ) -> kalypso_generator_models::models::GenerateProofResponse {
     let ask_id = payload.only_ask_id();
     let value = vec![
-        ethers::abi::Token::Uint(ask_id.into()),
+        ethers::abi::Token::Uint(ask_id),
         ethers::abi::Token::Bytes(payload.get_public()),
     ];
     let encoded = ethers::abi::encode(&value);
@@ -494,11 +494,11 @@ async fn generate_invalid_input_attestation(
         .await
         .unwrap();
 
-    let response = kalypso_generator_models::models::GenerateProofResponse {
-        proof: signature.to_vec(),
-    };
+    
 
-    return response;
+    kalypso_generator_models::models::GenerateProofResponse {
+        proof: signature.to_vec(),
+    }
 }
 
 fn get_signer(ecies_priv_key: Vec<u8>) -> Wallet<SigningKey> {
@@ -521,23 +521,23 @@ async fn check_authorization_testnet(
 
             if is_auth_empty {
                 if ask_payload.is_some() && signer_wallet.is_some() {
-                    return HttpResponse::Ok().json(
+                    HttpResponse::Ok().json(
                         generate_invalid_input_attestation(
                             ask_payload.unwrap(),
                             signer_wallet.unwrap(),
                         )
                         .await,
-                    );
+                    )
                 } else {
-                    return HttpResponse::Ok().json(default_response);
+                    HttpResponse::Ok().json(default_response)
                 }
             } else {
                 let data = kalypso_ivs_models::models::CheckInputResponse { valid: true };
-                return HttpResponse::Ok().json(data);
+                HttpResponse::Ok().json(data)
             }
         }
         Err(_) => {
-            return HttpResponse::Ok().json(default_response);
+            HttpResponse::Ok().json(default_response)
         }
     }
 }
@@ -554,23 +554,23 @@ async fn check_authorization_mainnet(
 
             if is_auth_empty {
                 if ask_payload.is_some() && signer_wallet.is_some() {
-                    return HttpResponse::Ok().json(
+                    HttpResponse::Ok().json(
                         generate_invalid_input_attestation(
                             ask_payload.unwrap(),
                             signer_wallet.unwrap(),
                         )
                         .await,
-                    );
+                    )
                 } else {
-                    return HttpResponse::Ok().json(default_response);
+                    HttpResponse::Ok().json(default_response)
                 }
             } else {
                 let data = kalypso_ivs_models::models::CheckInputResponse { valid: true };
-                return HttpResponse::Ok().json(data);
+                HttpResponse::Ok().json(data)
             }
         }
         Err(_) => {
-            return HttpResponse::Ok().json(default_response);
+            HttpResponse::Ok().json(default_response)
         }
     }
 }
