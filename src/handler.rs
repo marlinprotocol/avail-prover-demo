@@ -453,6 +453,16 @@ async fn verify_inputs_and_proof(
     }
 }
 
+#[post("/signInputsAndProofForNonConfidnetialInputs")]
+async fn sign_inputs_and_proof(
+    _: web::Json<kalypso_ivs_models::models::SignInputsAndProofForNonConfidentialInput>,
+) -> impl Responder {
+    return response(
+        "Not Required for this prover",
+        StatusCode::BAD_REQUEST,
+        None,
+    );
+}
 // Routes
 pub fn routes(conf: &mut web::ServiceConfig) {
     let scope = web::scope("/api")
@@ -462,7 +472,8 @@ pub fn routes(conf: &mut web::ServiceConfig) {
         .service(check_input_handler)
         .service(get_attestation_for_invalid_inputs)
         .service(check_encrypted_input)
-        .service(verify_inputs_and_proof);
+        .service(verify_inputs_and_proof)
+        .service(sign_inputs_and_proof);
     conf.service(scope);
 }
 
