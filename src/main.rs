@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
                 "c53dd8e14d0a4f8fa7b87c66adfc0d6197159732fd29517ea6783741423b9f54".into(),
                 "0x0b6340a893B944BDc3B4F012e934b724c83abF97".into(),
                 "0x5ce3e1010028C4F5687356D721e3e2B6DcEA7C25".into(),
-                69330000,
+                79300000,
                 421614,
                 port_clone,
                 false,
