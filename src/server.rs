@@ -13,6 +13,7 @@ pub struct ProvingServer {
 
 impl ProvingServer {
     pub fn new(enclave_key: String, port: u16) -> Self {
+        log::warn!("Trying to spin up new proving server");
         let semaphore = Arc::new(Semaphore::new(1));
         let enclave_key = hex::decode(enclave_key).unwrap();
         let enclave_key = Arc::new(Mutex::new(enclave_key));
@@ -23,6 +24,7 @@ impl ProvingServer {
         }
     }
     pub async fn start_server(self) -> anyhow::Result<()> {
+        log::warn!("Trying to start proving server");
         HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(self.enclave_key.clone()))
