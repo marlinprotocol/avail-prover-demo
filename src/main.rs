@@ -2,6 +2,7 @@ mod handler;
 mod model;
 mod prover;
 mod server;
+use std::env;
 use std::fs;
 
 #[tokio::main]
@@ -16,6 +17,16 @@ async fn main() -> std::io::Result<()> {
 
     let enclave_key_clone = enclave_key.clone();
     let handle_1 = tokio::spawn(async {
+        let max_threads = env::var("MAX_THREADS")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok()) // Parse the value to usize
+            .unwrap_or(1);
+
+        let start_block = env::var("START_BLOCK")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok()) // Parse the value to usize
+            .unwrap_or(79300000);
+
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
                 "0x704f1b9586EEf4B30C4f4658aA132bd9dE62cc5C".into(),
@@ -25,11 +36,11 @@ async fn main() -> std::io::Result<()> {
                 "c53dd8e14d0a4f8fa7b87c66adfc0d6197159732fd29517ea6783741423b9f54".into(),
                 "0x0b6340a893B944BDc3B4F012e934b724c83abF97".into(),
                 "0x5ce3e1010028C4F5687356D721e3e2B6DcEA7C25".into(),
-                79300000,
+                start_block,
                 421614,
                 port_clone,
                 false,
-                3,
+                max_threads,
             );
 
         listener.run().await
