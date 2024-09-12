@@ -27,6 +27,8 @@ async fn main() -> std::io::Result<()> {
             .and_then(|v| v.parse::<u64>().ok()) // Parse the value to usize
             .unwrap_or(79300000);
 
+        log::info!("Start Block: {}, Max Parallel Requests: {}", start_block, max_threads);
+        
         let listener =
             kalypso_listener::job_creator::JobCreator::simple_listener_for_confidential_prover(
                 "0x704f1b9586EEf4B30C4f4658aA132bd9dE62cc5C".into(),
